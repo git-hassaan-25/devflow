@@ -12,19 +12,23 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    fetchProjects(page);
+  }, [page]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (currentPage = 1) => {
+    setLoading(true);
     try {
-      const res = await api.get('/projects');
-      setProjects(res.data);
-      setLoading(false);
+      const res = await api.get(`/projects?page=${currentPage}&limit=6`);
+      setProjects(res.data.projects);
+      setPagination(res.data.pagination);
     } catch (err) {
       console.error('Failed to fetch projects:', err);
+    } finally {
       setLoading(false);
     }
   };
@@ -32,15 +36,14 @@ export default function Projects() {
   const handleCreateProject = async (e) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-
     try {
-      const res = await api.post('/projects', {
+      await api.post('/projects', {
         name: newProjectName,
         description: newProjectDesc,
       });
-      setProjects([...projects, res.data]);
       setNewProjectName('');
       setNewProjectDesc('');
+      fetchProjects(page); // refresh current page
     } catch (err) {
       console.error('Failed to create project:', err);
     }
@@ -50,14 +53,13 @@ export default function Projects() {
     if (!window.confirm('Delete project?')) return;
     try {
       await api.delete(`/projects/${projectId}`);
-      setProjects(projects.filter((p) => p._id !== projectId));
+      // go to prev page if last item on page was deleted
+      const newPage = projects.length === 1 && page > 1 ? page - 1 : page;
+      setPage(newPage);
+      fetchProjects(newPage);
     } catch (err) {
       console.error('Failed to delete project:', err);
     }
-  };
-
-  const handleEditProject = (project) => {
-    setEditingProject(project);
   };
 
   const handleSaveProject = async (updates) => {
@@ -65,11 +67,7 @@ export default function Projects() {
     setEditLoading(true);
     try {
       const res = await api.put(`/projects/${editingProject._id}`, updates);
-      setProjects(
-        projects.map((p) =>
-          p._id === editingProject._id ? res.data : p
-        )
-      );
+      setProjects(projects.map((p) => p._id === editingProject._id ? res.data : p));
       setEditingProject(null);
     } catch (err) {
       console.error('Failed to update project:', err);
@@ -78,7 +76,7 @@ export default function Projects() {
     }
   };
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+  // if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
 
   return (
     <>
@@ -86,6 +84,9 @@ export default function Projects() {
       <div className="projects-page">
         <div className="projects-header">
           <h2>My Projects</h2>
+          {pagination && (
+            <span className="projects-count">{pagination.total} projects</span>
+          )}
         </div>
 
         <div className="create-form">
@@ -115,22 +116,13 @@ export default function Projects() {
                 <h3>{project.name}</h3>
                 {project.description && <p>{project.description}</p>}
                 <div className="project-actions">
-                  <button
-                    className="open-btn"
-                    onClick={() => navigate(`/projects/${project._id}/kanban`)}
-                  >
+                  <button className="open-btn" onClick={() => navigate(`/projects/${project._id}/kanban`)}>
                     Open Board
                   </button>
-                  <button
-                    className="edit-btn"
-                    onClick={() => handleEditProject(project)}
-                  >
+                  <button className="edit-btn" onClick={() => setEditingProject(project)}>
                     Edit
                   </button>
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDeleteProject(project._id)}
-                  >
+                  <button className="delete-btn" onClick={() => handleDeleteProject(project._id)}>
                     Delete
                   </button>
                 </div>
@@ -138,6 +130,37 @@ export default function Projects() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="pagination">
+            <button
+              className="page-btn"
+              onClick={() => setPage(page - 1)}
+              disabled={!pagination.hasPrev}
+            >
+              ← Prev
+            </button>
+
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={`page-btn ${p === page ? 'active' : ''}`}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            ))}
+
+            <button
+              className="page-btn"
+              onClick={() => setPage(page + 1)}
+              disabled={!pagination.hasNext}
+            >
+              Next →
+            </button>
+          </div>
+        )}
 
         {editingProject && (
           <EditProjectModal
