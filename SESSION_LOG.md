@@ -1,4 +1,4 @@
-# DevFlow — Session Log (2026-04-24)
+# DevFlow — Session Log (2026-04-25)
 
 ## Project vision
 
@@ -8,18 +8,19 @@ Project was chosen specifically to train real API design, scalable folder struct
 
 ## Roadmap status
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Basic API, connect React ↔ Node | Done |
-| 2 | Users + auth | Done |
-| 3 | Projects + tasks (CRUD) | Done |
-| 4 | Advanced UI + optimization (Kanban, real-time) | Next |
+| Phase | Description                                    | Status |
+| ----- | ---------------------------------------------- | ------ |
+| 1     | Basic API, connect React ↔ Node                | Done   |
+| 2     | Users + auth                                   | Done   |
+| 3     | Projects + tasks (CRUD)                        | Done   |
+| 4     | Advanced UI + optimization (Kanban, real-time) | Next   |
 
 ## What was built
 
 ### Backend (Node + Express + MongoDB)
 
 **Scaffold & infra:**
+
 - `server/src/server.js` — entry; loads env first, awaits `connectDB()`, then starts listener
 - `server/src/app.js` — Express app (cors, json parser, routes, error middleware)
 - `server/src/config/db.js` — MongoDB Atlas connection
@@ -28,6 +29,7 @@ Project was chosen specifically to train real API design, scalable folder struct
 - `server/package.json` — ES modules (`"type": "module"`), scripts `start` / `dev`
 
 **Auth feature (Phase 2):**
+
 - `server/src/models/User.js` — name/email/password/avatar/role; bcrypt pre-save hook; `matchPassword` instance method; `password: select: false`
 - `server/src/utils/generateToken.js` — JWT signer, 7-day expiry
 - `server/src/controllers/authController.js` — `register`, `login`, `getMe`
@@ -35,6 +37,7 @@ Project was chosen specifically to train real API design, scalable folder struct
 - `server/src/routes/authRoutes.js`
 
 **Projects + Tasks feature (Phase 3):**
+
 - `server/src/models/Project.js` — name/description/owner(ref User)/members(array ref User)
 - `server/src/models/Task.js` — title/description/status(enum)/project(ref)/assignee/createdBy/dueDate
 - `server/src/controllers/projectController.js` — create/list-mine/get/update/delete with owner-vs-member authorization
@@ -43,6 +46,7 @@ Project was chosen specifically to train real API design, scalable folder struct
 - `server/src/routes/taskRoutes.js`
 
 ### Frontend (Vite + React + React Router + Axios)
+
 - Scaffold only — `client/src/pages/Home.jsx` pings `/api/health` to prove end-to-end connectivity
 - `client/src/api/axios.js` — single shared axios instance, reads `VITE_API_URL`
 - `client/vite.config.js` — dev proxy `/api → localhost:5000`
@@ -50,22 +54,22 @@ Project was chosen specifically to train real API design, scalable folder struct
 
 ## Complete API surface
 
-| Method | Path | Auth | Authorization |
-|--------|------|------|---------------|
-| `GET` | `/api/health` | public | — |
-| `POST` | `/api/auth/register` | public | — |
-| `POST` | `/api/auth/login` | public | — |
-| `GET` | `/api/auth/me` | Bearer | self |
-| `POST` | `/api/projects` | Bearer | any user (becomes owner) |
-| `GET` | `/api/projects` | Bearer | owner or member |
-| `GET` | `/api/projects/:id` | Bearer | owner or member |
-| `PUT` | `/api/projects/:id` | Bearer | **owner only** |
-| `DELETE` | `/api/projects/:id` | Bearer | **owner only** |
-| `POST` | `/api/tasks` | Bearer | owner or member of parent project |
-| `GET` | `/api/tasks?project=<id>` | Bearer | owner or member of project |
-| `GET` | `/api/tasks/:id` | Bearer | owner or member of parent project |
-| `PUT` | `/api/tasks/:id` | Bearer | owner or member of parent project |
-| `DELETE` | `/api/tasks/:id` | Bearer | owner or member of parent project |
+| Method   | Path                      | Auth   | Authorization                     |
+| -------- | ------------------------- | ------ | --------------------------------- |
+| `GET`    | `/api/health`             | public | —                                 |
+| `POST`   | `/api/auth/register`      | public | —                                 |
+| `POST`   | `/api/auth/login`         | public | —                                 |
+| `GET`    | `/api/auth/me`            | Bearer | self                              |
+| `POST`   | `/api/projects`           | Bearer | any user (becomes owner)          |
+| `GET`    | `/api/projects`           | Bearer | owner or member                   |
+| `GET`    | `/api/projects/:id`       | Bearer | owner or member                   |
+| `PUT`    | `/api/projects/:id`       | Bearer | **owner only**                    |
+| `DELETE` | `/api/projects/:id`       | Bearer | **owner only**                    |
+| `POST`   | `/api/tasks`              | Bearer | owner or member of parent project |
+| `GET`    | `/api/tasks?project=<id>` | Bearer | owner or member of project        |
+| `GET`    | `/api/tasks/:id`          | Bearer | owner or member of parent project |
+| `PUT`    | `/api/tasks/:id`          | Bearer | owner or member of parent project |
+| `DELETE` | `/api/tasks/:id`          | Bearer | owner or member of parent project |
 
 ## Key patterns & decisions (house rules)
 
@@ -139,20 +143,234 @@ curl -X PUT http://localhost:5000/api/tasks/TASK_ID ^
 Next direction to pick:
 
 **Option A — Backend polish**
+
 - Pagination on list endpoints (critical once data grows)
 - Input validation layer (Joi or Zod)
 - Invite/remove members endpoints on projects
 - Seed script (demo user + project + tasks so you stop re-curling)
 
 **Option B — Jump to Phase 4 frontend (recommended)**
+
 - Auth pages (register, login) + token storage (localStorage or context)
 - Projects dashboard
 - Kanban board with drag-and-drop + status update via existing `PUT /api/tasks/:id`
 
 **Recommendation:** Option B, with a ~20-line seed script as a quick detour first so the UI has believable data to render against.
 
+---
+
+# Session 2 Update (2026-04-25): UI Modernization & Theme System
+
+## What was accomplished
+
+### Tailwind CSS Integration
+
+- Installed `@tailwindcss/postcss` (v4 plugin requirement)
+- Created comprehensive `tailwind.config.js` with custom color palette:
+  - Primary: `#667eea`, Primary-dark: `#5568d3`
+  - Secondary: `#f59e0b`, Secondary-dark: `#d97706`
+  - Danger: `#ef4444`, Danger-dark: `#dc2626`
+- Configured dark mode as `class`-based (not system preference)
+
+### Global Styling Architecture
+
+- Rewrote `client/src/index.css` with Tailwind directives (@tailwind base/components/utilities)
+- Created `@layer components` with reusable classes:
+  - `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-ghost` (all with hover + dark variants)
+  - `.input-field` (with focus ring, dark mode support)
+  - `.card` (with border-left accent, shadow, responsive)
+- All component classes include `dark:` variants for automatic theme switching
+
+### Theme Context System
+
+- **`client/src/context/ThemeContext.jsx`** — Manages light/dark mode state
+  - Toggles HTML class attribute (`dark` class added/removed)
+  - Persists to localStorage under key `theme-preference`
+  - Detects system preference on first use
+  - Exports `ThemeProvider` wrapper component
+
+- **`client/src/hooks/useTheme.js`** — Hook for accessing theme context
+  - Simple wrapper: `const { theme, toggleTheme } = useTheme()`
+
+- **`client/src/App.jsx`** — Updated to wrap all routes with `ThemeProvider` (outermost position)
+
+### Component Conversions to Tailwind (7 components)
+
+1. **`client/src/pages/Home.jsx`** ✅
+   - Gradient background: `from-blue-600 to-purple-600`
+   - Card-based layout with responsive grid
+   - Dark mode: automatic via `dark:` classes
+
+2. **`client/src/pages/Login.jsx`** ✅
+   - Form inputs using `.input-field` reusable class
+   - Pre-filled demo credentials (email: demo@example.com)
+   - Error alerts with red styling
+   - Full Tailwind conversion
+
+3. **`client/src/pages/Register.jsx`** ✅
+   - Fixed duplicate code issue (had old auth-form code block)
+   - Converted to Tailwind with `.input-field` and `.btn-primary` classes
+   - Name/email/password fields with proper styling
+
+4. **`client/src/pages/Projects.jsx`** ✅
+   - Responsive grid: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+   - Create form with input validation feedback
+   - 3-button action group per project: `Open` (primary) → `Edit` (secondary) → `Delete` (danger)
+   - Modal integration with EditProjectModal
+
+5. **`client/src/pages/Kanban.jsx`** ✅
+   - 3-column Kanban board: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+   - Column styling: `bg-gray-100 dark:bg-gray-700` with dashed border
+   - Task cards using `.card` component class with grab cursor animation
+   - Delete button positioned absolutely with hover color transitions
+   - Preserved drag-and-drop functionality (unchanged drag handlers)
+   - Loading state with animated spinner
+
+6. **`client/src/components/Navbar.jsx`** ✅
+   - Sticky top navbar with `z-50` layering
+   - Brand text and user greeting
+   - Theme toggle button (☀️/🌙 emoji buttons)
+   - Dark mode: `dark:bg-gray-800` background
+   - Color uses custom primary color variable
+
+7. **`client/src/components/EditProjectModal.jsx`** ✅
+   - Overlay modal with `fixed inset-0` positioning
+   - Form inputs with `.input-field` class
+   - Tailwind animations: `animate-in fade-in slide-in-from-top`
+   - Dark mode modal background: `dark:bg-gray-800`
+
+### Cleanup
+
+- Removed 6 old CSS files (no longer needed):
+  - ~~`Projects.css`~~, ~~`Kanban.css`~~, ~~`Home.css`~~
+  - ~~`Auth.css`~~, ~~`Navbar.css`~~, ~~`EditProjectModal.css`~~
+
+## Current Frontend Architecture
+
+```
+client/src/
+├── context/
+│   ├── AuthContext.jsx (auth state + token)
+│   └── ThemeContext.jsx (light/dark theme + localStorage)
+├── hooks/
+│   ├── useAuth.js
+│   └── useTheme.js
+├── pages/
+│   ├── Home.jsx (gradient landing, redirects if authed)
+│   ├── Login.jsx (demo creds, card layout)
+│   ├── Register.jsx (name/email/password)
+│   ├── Projects.jsx (CRUD + edit modal)
+│   └── Kanban.jsx (3-column board + drag-drop)
+├── components/
+│   ├── Navbar.jsx (with theme toggle)
+│   ├── EditProjectModal.jsx (edit dialog)
+│   └── ProtectedRoute.jsx (redirects unauthenticated)
+├── App.jsx (ThemeProvider wrapper → Routes)
+├── index.css (Tailwind + @layer components)
+└── tailwind.config.js (custom colors, dark mode class)
+```
+
+## Theme System Behavior
+
+**Toggle Flow:**
+
+1. User clicks 🌙☀️ button in Navbar
+2. `useTheme().toggleTheme()` called
+3. ThemeContext updates state → HTML class toggled
+4. All `dark:` Tailwind classes automatically re-apply
+5. Preference saved to localStorage
+
+**Persistence:**
+
+- On app load, theme context reads localStorage
+- If no preference stored, uses system preference (window.matchMedia)
+- Survives page reloads and full browser restarts
+
+**Coverage:**
+
+- All pages responsive with `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+- All inputs/buttons use reusable component classes
+- All text colors include `dark:` variants
+- Backgrounds use `bg-white dark:bg-gray-800` pattern
+
+## Backend Status (unchanged from session 1)
+
+- ✅ 14 RESTful API endpoints fully functional
+- ✅ JWT auth with bcrypt password hashing
+- ✅ Project ownership + member authorization
+- ✅ Task status enum state machine
+- ✅ MongoDB Atlas connection
+- Zod input validation layer (created in previous work)
+- Can seed demo data with `npm run seed`
+
+## Active Development Status
+
+- **Frontend:** All pages converted to Tailwind ✅
+- **Theme system:** Light/dark mode complete ✅
+- **Dev servers:** Backend (5000) + Frontend (5174) running ✅
+- **Ready to test:** Page theme toggle, responsive grid, dark mode rendering
+
+## Files Modified/Created This Session
+
+**Created:**
+
+- `client/src/context/ThemeContext.jsx`
+- `client/src/hooks/useTheme.js`
+
+**Modified:**
+
+- `client/src/pages/Home.jsx` (full Tailwind conversion)
+- `client/src/pages/Login.jsx` (full Tailwind conversion)
+- `client/src/pages/Register.jsx` (fix duplicate code + Tailwind)
+- `client/src/pages/Projects.jsx` (full Tailwind conversion)
+- `client/src/pages/Kanban.jsx` (remove CSS import + Tailwind conversion)
+- `client/src/components/Navbar.jsx` (full Tailwind conversion)
+- `client/src/components/EditProjectModal.jsx` (full Tailwind conversion)
+- `client/src/App.jsx` (add ThemeProvider wrapper)
+- `client/src/index.css` (rewrite with Tailwind directives)
+- `client/tailwind.config.js` (custom theme colors, dark mode)
+- `client/postcss.config.js` (Tailwind v4 plugin config)
+- `client/package.json` (installed @tailwindcss/postcss)
+
+**Deleted:**
+
+- ~~`Projects.css`~~, ~~`Kanban.css`~~, ~~`Home.css`~~, ~~`Auth.css`~~, ~~`Navbar.css`~~, ~~`EditProjectModal.css`~~
+
+## Key Technical Decisions
+
+1. **Class-based dark mode** — CSS classes easier to toggle than system preference + respects user choice
+2. **@layer components in index.css** — Single source of truth for btn/input/card styling, reduces duplication across components
+3. **ThemeContext outside AuthContext** — Theme must persist independently of auth state; user preference survives logout
+4. **Tailwind v4 + @tailwindcss/postcss** — Modern plugin architecture separates concerns
+5. **Responsive grid pattern** — `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3` used consistently across Projects/Kanban for UX uniformity
+
+## Next Session Options
+
+### Option 1: Backend Database Migration (PostgreSQL)
+
+- Learn PostgreSQL fundamentals from scratch
+- Migrate DevFlow models from MongoDB → PostgreSQL + Prisma ORM
+- Replace Mongoose with Prisma schema
+- Update API routes to use Prisma client
+- **Time estimate:** 2-3 hours (learning + implementation)
+
+### Option 2: Real-time Features (WebSockets)
+
+- Add Socket.IO to backend + Socket.IO client to frontend
+- Real-time task drag-and-drop (Kanban board live-sync)
+- Live project updates (members see new tasks instantly)
+- User typing indicators
+- **Time estimate:** 1.5-2 hours
+
+### Option 3: Continue Backend Polish
+
+- Pagination on `/api/projects` and `/api/tasks?project=<id>`
+- Invite/remove members endpoints
+- Task editing in Kanban (currently only add/delete)
+- Search + filtering on projects/tasks
+- **Time estimate:** 1.5-2 hours
+
 ## Resume prompt for next session
 
-> continue DevFlow — I want option A / B
-
-(Or just describe what you want to build next. Memory will carry project state, teaching cadence, and where we left off.)
+> **I want to learn PostgreSQL from the start** (Option 1)
+> OR continue DevFlow with [Option 2 / Option 3]
