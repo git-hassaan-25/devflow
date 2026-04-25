@@ -23,13 +23,34 @@ export const createProject = async (req, res, next) => {
 
 export const getMyProjects = async (req, res, next) => {
   try {
-    const projects = await Project.find({
-      $or: [{ owner: req.user._id }, { members: req.user._id }],
-    })
-      .populate('owner', 'name email')
-      .sort({ updatedAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
 
-    return res.json(projects);
+    const filter = {
+      $or: [{ owner: req.user._id }, { members: req.user._id }],
+    };
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .populate('owner', 'name email')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Project.countDocuments(filter),
+    ]);
+
+    return res.json({
+      projects,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      },
+    });
   } catch (err) {
     next(err);
   }
