@@ -5,11 +5,8 @@ const isValidId = (id) => mongoose.isValidObjectId(id);
 
 export const createProject = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: 'Project name is required' });
-    }
+    // req.validated is already parsed & validated by middleware
+    const { name, description } = req.validated;
 
     const project = await Project.create({
       name,
@@ -81,7 +78,8 @@ export const updateProject = async (req, res, next) => {
       return res.status(403).json({ message: 'Forbidden: only the owner can update' });
     }
 
-    const { name, description } = req.body;
+    // req.validated contains only parsed & validated fields
+    const { name, description } = req.validated;
     if (name !== undefined) project.name = name;
     if (description !== undefined) project.description = description;
 

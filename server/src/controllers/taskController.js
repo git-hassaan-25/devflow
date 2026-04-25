@@ -9,14 +9,8 @@ const userCanAccessProject = (project, userId) =>
 
 export const createTask = async (req, res, next) => {
   try {
-    const { title, description, project: projectId, status, assignee, dueDate } = req.body;
-
-    if (!title || !title.trim()) {
-      return res.status(400).json({ message: 'Task title is required' });
-    }
-    if (!isValidId(projectId)) {
-      return res.status(400).json({ message: 'Valid project id is required' });
-    }
+    // req.validated is already parsed & validated by middleware
+    const { title, description, project: projectId, status, assignee, dueDate } = req.validated;
 
     const project = await Project.findById(projectId);
     if (!project) {
@@ -112,7 +106,8 @@ export const updateTask = async (req, res, next) => {
       return res.status(403).json({ message: 'Forbidden: not a member of this project' });
     }
 
-    const { title, description, status, assignee, dueDate } = req.body;
+    // req.validated contains only parsed & validated fields
+    const { title, description, status, assignee, dueDate } = req.validated;
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (status !== undefined) task.status = status;
