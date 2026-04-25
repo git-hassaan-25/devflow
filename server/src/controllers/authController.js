@@ -3,11 +3,8 @@ import generateToken from '../utils/generateToken.js';
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email and password are required' });
-    }
+    // req.validated is already parsed & validated by middleware
+    const { name, email, password } = req.validated;
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -30,11 +27,8 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
+    // req.validated is already parsed & validated by middleware
+    const { email, password } = req.validated;
 
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.matchPassword(password))) {
