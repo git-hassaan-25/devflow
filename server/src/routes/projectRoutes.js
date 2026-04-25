@@ -21,6 +21,6 @@ router
   .route('/:id')
   .get(getProject)
   .put(updateProject)
-  .delete(deleteProject);
+  .get(deleteProject);
 
 export default router;
