@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios.js';
 import Navbar from '../components/Navbar.jsx';
+import EditProjectModal from '../components/EditProjectModal.jsx';
 import './Projects.css';
 
 export default function Projects() {
@@ -9,6 +10,8 @@ export default function Projects() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +53,28 @@ export default function Projects() {
       setProjects(projects.filter((p) => p._id !== projectId));
     } catch (err) {
       console.error('Failed to delete project:', err);
+    }
+  };
+
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+  };
+
+  const handleSaveProject = async (updates) => {
+    if (!editingProject) return;
+    setEditLoading(true);
+    try {
+      const res = await api.put(`/projects/${editingProject._id}`, updates);
+      setProjects(
+        projects.map((p) =>
+          p._id === editingProject._id ? res.data : p
+        )
+      );
+      setEditingProject(null);
+    } catch (err) {
+      console.error('Failed to update project:', err);
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -97,6 +122,12 @@ export default function Projects() {
                     Open Board
                   </button>
                   <button
+                    className="edit-btn"
+                    onClick={() => handleEditProject(project)}
+                  >
+                    Edit
+                  </button>
+                  <button
                     className="delete-btn"
                     onClick={() => handleDeleteProject(project._id)}
                   >
@@ -107,6 +138,15 @@ export default function Projects() {
             ))
           )}
         </div>
+
+        {editingProject && (
+          <EditProjectModal
+            project={editingProject}
+            onSave={handleSaveProject}
+            onCancel={() => setEditingProject(null)}
+            loading={editLoading}
+          />
+        )}
       </div>
     </>
   );
