@@ -1,17 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api/axios.js';
-import Navbar from '../components/Navbar.jsx';
-import './Kanban.css';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useSocket } from "../hooks/useSocket.js";
+import api from "../api/axios.js";
+import Navbar from "../components/Navbar.jsx";
+import "./Kanban.css";
 
 export default function Kanban() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState('');
+  const [newTask, setNewTask] = useState("");
   const [loading, setLoading] = useState(true);
   const [draggedTask, setDraggedTask] = useState(null);
+
+  useSocket(projectId, {
+    onTaskCreated: (task) => {
+      setTasks((prev) => {
+        // avoid duplicates if this client made the request
+        if (prev.find((t) => t._id === task._id)) return prev;
+        return [...prev, task];
+      });
+    },
+    onTaskUpdated: (updated) => {
+      setTasks((prev) =>
+        prev.map((t) => (t._id === updated._id ? updated : t)),
+      );
+    },
+    onTaskDeleted: ({ _id }) => {
+      setTasks((prev) => prev.filter((t) => t._id !== _id));
+    },
+  });
 
   useEffect(() => {
     fetchProject();
@@ -23,7 +42,7 @@ export default function Kanban() {
       const res = await api.get(`/projects/${projectId}`);
       setProject(res.data);
     } catch (err) {
-      console.error('Failed to fetch project:', err);
+      console.error("Failed to fetch project:", err);
     }
   };
 
@@ -33,7 +52,7 @@ export default function Kanban() {
       setTasks(res.data);
       setLoading(false);
     } catch (err) {
-      console.error('Failed to fetch tasks:', err);
+      console.error("Failed to fetch tasks:", err);
       setLoading(false);
     }
   };
@@ -43,14 +62,14 @@ export default function Kanban() {
     if (!newTask.trim()) return;
 
     try {
-      const res = await api.post('/tasks', {
+      const res = await api.post("/tasks", {
         title: newTask,
         project: projectId,
       });
       setTasks([...tasks, res.data]);
-      setNewTask('');
+      setNewTask("");
     } catch (err) {
-      console.error('Failed to create task:', err);
+      console.error("Failed to create task:", err);
     }
   };
 
@@ -68,13 +87,11 @@ export default function Kanban() {
     try {
       await api.put(`/tasks/${draggedTask._id}`, { status });
       setTasks(
-        tasks.map((t) =>
-          t._id === draggedTask._id ? { ...t, status } : t
-        )
+        tasks.map((t) => (t._id === draggedTask._id ? { ...t, status } : t)),
       );
       setDraggedTask(null);
     } catch (err) {
-      console.error('Failed to update task:', err);
+      console.error("Failed to update task:", err);
     }
   };
 
@@ -83,21 +100,23 @@ export default function Kanban() {
       await api.delete(`/tasks/${taskId}`);
       setTasks(tasks.filter((t) => t._id !== taskId));
     } catch (err) {
-      console.error('Failed to delete task:', err);
+      console.error("Failed to delete task:", err);
     }
   };
 
-  const getTasksByStatus = (status) =>
-    tasks.filter((t) => t.status === status);
+  const getTasksByStatus = (status) => tasks.filter((t) => t.status === status);
 
-  if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+  if (loading)
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>
+    );
 
   return (
     <>
       <Navbar />
       <div className="kanban-page">
         <div className="kanban-header">
-          <button onClick={() => navigate('/projects')} className="back-btn">
+          <button onClick={() => navigate("/projects")} className="back-btn">
             ← Back to Projects
           </button>
           <h2>{project?.name}</h2>
@@ -116,14 +135,14 @@ export default function Kanban() {
         </div>
 
         <div className="kanban-board">
-          {['todo', 'in-progress', 'done'].map((status) => (
+          {["todo", "in-progress", "done"].map((status) => (
             <div
               key={status}
               className="kanban-column"
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(status)}
             >
-              <h3>{status.replace('-', ' ').toUpperCase()}</h3>
+              <h3>{status.replace("-", " ").toUpperCase()}</h3>
               <div className="kanban-tasks">
                 {getTasksByStatus(status).map((task) => (
                   <div
@@ -133,9 +152,7 @@ export default function Kanban() {
                     onDragStart={() => handleDragStart(task)}
                   >
                     <p>{task.title}</p>
-                    {task.description && (
-                      <small>{task.description}</small>
-                    )}
+                    {task.description && <small>{task.description}</small>}
                     <button
                       className="delete-btn"
                       onClick={() => handleDeleteTask(task._id)}

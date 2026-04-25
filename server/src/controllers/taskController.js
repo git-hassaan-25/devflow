@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
+import { emitToProject } from '../socket.js';
 
 const isValidId = (id) => mongoose.isValidObjectId(id);
 
@@ -30,6 +31,7 @@ export const createTask = async (req, res, next) => {
       createdBy: req.user._id,
     });
 
+    emitToProject(projectId, 'task:created', task);
     return res.status(201).json(task);
   } catch (err) {
     next(err);
@@ -115,6 +117,7 @@ export const updateTask = async (req, res, next) => {
     if (dueDate !== undefined) task.dueDate = dueDate || null;
 
     const updated = await task.save();
+    emitToProject(task.project.toString(), 'task:updated', updated);
     return res.json(updated);
   } catch (err) {
     next(err);
@@ -139,6 +142,7 @@ export const deleteTask = async (req, res, next) => {
     }
 
     await task.deleteOne();
+    emitToProject(task.project.toString(), 'task:deleted', { _id: id });
     return res.json({ message: 'Task deleted' });
   } catch (err) {
     next(err);
