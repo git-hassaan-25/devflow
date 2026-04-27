@@ -1,11 +1,12 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import FullPageLoader from './FullPageLoader.jsx';
 
 export function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+    return <FullPageLoader label="Authenticating" minHeight="100vh" />;
   }
 
   if (!user) {
